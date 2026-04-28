@@ -18,13 +18,21 @@ npm run lint      # run ESLint
 
 ## Architecture
 
-The entire app lives in a single component: `src/App.jsx`. There is no routing, no context, no separate components — all state and rendering are in `App`.
+There is no routing, no context, and no persistence (state resets on refresh). The component tree is:
 
-**Known bug**: `amount` is stored as a string in state (from the form input). The `totalIncome` and `totalExpenses` reducers use `+` on strings, so they concatenate instead of summing numerically. Fix: parse `amount` to a number when creating a new transaction or when reading it in the reducers.
+```
+App
+├── Summary
+├── TransactionForm
+└── TransactionList
+```
 
-**State shape** (all in `App`):
-- `transactions` — array of `{ id, description, amount, type, category, date }`
-- Form fields: `description`, `amount`, `type`, `category`
-- Filter fields: `filterType`, `filterCategory`
+**`App`** — holds the single source of truth: the `transactions` array (`{ id, description, amount, type, category, date }`). Passes `transactions` down to all children and an `onAdd` callback to `TransactionForm`.
 
-**Data flow**: transactions are filtered client-side on render using `filterType` and `filterCategory`; there is no persistence (state resets on refresh).
+**`Summary`** — receives `transactions` and derives `totalIncome`, `totalExpenses`, and `balance` internally.
+
+**`TransactionForm`** — owns its own form state (`description`, `amount`, `type`, `category`). Calls `onAdd` with the new transaction object on submit. `amount` is stored as a string in form state and parsed to a float via `parseFloat` before being passed up.
+
+**`TransactionList`** — receives `transactions` and owns filter state (`filterType`, `filterCategory`). Filters client-side on render.
+
+The `categories` constant is duplicated in `TransactionForm` and `TransactionList` — a shared constants file does not yet exist.
